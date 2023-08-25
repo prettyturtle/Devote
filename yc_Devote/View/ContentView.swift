@@ -12,7 +12,7 @@ struct ContentView: View {
     // MARK: - PROPERTIES
     
     @State var task: String = ""
-    private var isButtonDisabled: Bool { task.isEmpty }
+    @State private var showNewTaskItem: Bool = false
     
     // FETCHING DATA
     @Environment(\.managedObjectContext) private var viewContext
@@ -24,26 +24,7 @@ struct ContentView: View {
     private var items: FetchedResults<Item>
     
     // MARK: - FUNCTIONS
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            
-            newItem.timestamp = Date()
-            newItem.task = task
-            newItem.completion = false
-            newItem.id = UUID()
-            
-            do {
-                try viewContext.save()
-            } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-            
-            task = ""
-            hideKeyboard()
-        }
-    }
+    
     
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
@@ -62,32 +43,38 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack {
+                // MARK: - MAIN VIEW
+                
                 VStack {
-                    VStack(spacing: 16) {
-                        TextField(text: $task) {
-                            Text("New Task")
+                    // MARK: - HEADER
+                    Spacer(minLength: 80)
+                    
+                    // MARK: - NEW TASK BUTTON
+                    Button {
+                        withAnimation(.easeIn) {
+                            showNewTaskItem = true
                         }
-                        .padding()
-                        .background(
-                            Color(UIColor.systemGray6)
-                        )
-                        .cornerRadius(10)
                         
-                        Button {
-                            addItem()
-                        } label: {
-                            Spacer()
-                            Text("SAVE")
-                            Spacer()
-                        }
-                        .disabled(isButtonDisabled)
-                        .padding()
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .background(isButtonDisabled ? .gray : .pink)
-                        .cornerRadius(10)
-                    } //: VSTACK
-                    .padding()
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        Text("New Task")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 15)
+                    .background(
+                        LinearGradient(
+                            colors: [.pink, .blue],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .clipShape(Capsule())
+                    )
+                    .shadow(color: .black.opacity(0.25), radius: 8, x: 0.0, y: 4.0)
+                    
+                    // MARK: - TASKS
                     
                     List {
                         ForEach(items) { item in
@@ -119,6 +106,19 @@ struct ContentView: View {
                     .padding(.vertical, 0)
                     .frame(maxWidth: 640)
                 } //: VSTACK
+                
+                // MARK: - NEW TASK ITEM
+                if showNewTaskItem {
+                    BlankView()
+                        .onTapGesture {
+                            withAnimation(.easeOut) {
+                                showNewTaskItem = false
+                            }
+                        }
+                    
+                    NewTaskItemView(isShowing: $showNewTaskItem)
+                }
+                
             } //: ZSTACK
             .navigationTitle("Daily Tasks")
             .navigationBarTitleDisplayMode(.large)
